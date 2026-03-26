@@ -27,3 +27,15 @@ pub struct SummaryBreakupModel{
     pub upi_amount: f32,
     pub cheque_amount: f32,
 }
+#[derive(Debug,Serialize,Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetDueModel{
+    pub grp_name: String,
+    pub member_name: String,
+}
+#[derive(Debug,Serialize,Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DueModel{
+    pub pending_due: f32,
+    pub current_due: f32,
+}
