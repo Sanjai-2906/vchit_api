@@ -39,3 +39,9 @@ pub struct DueModel{
     pub pending_due: f32,
     pub current_due: f32,
 }
+#[derive(Debug,Serialize,Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoginModel{
+    pub name: String,
+    pub pass: String,
+}

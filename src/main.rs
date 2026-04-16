@@ -8,8 +8,10 @@ mod models;
 use handlers::{
     collections::get_collections, groups::get_groups, members::get_members,
     summary_breakup::summary_breakup, due_amount::get_due_amount,
+    user_login::user_login,add_collection::add_collection
 };
 use tower_http::cors::{Any, CorsLayer};
+
 
 #[tokio::main]
 async fn main() {
@@ -20,6 +22,8 @@ async fn main() {
 
     let app = Router::new()
         .route("/ping", post(ping))
+        .route("/login", post(user_login))
+        .route("/new_collection", post(add_collection))
         .route("/collectionlist", get(get_collections))
         .route("/due-amount", post(get_due_amount))
         .route("/members", get(get_members))
