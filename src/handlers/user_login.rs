@@ -4,7 +4,6 @@ use crate::models::LoginModel;
 
 
 pub async fn user_login(Json(data) : Json<LoginModel>) -> impl IntoResponse{
-    println!("User Data: {:?}",data);
     if data.name != "admin" {
         return (StatusCode::UNAUTHORIZED, "Unknown name").into_response();
     }

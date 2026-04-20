@@ -4,6 +4,7 @@ use axum::{
 };
 mod handlers;
 mod models;
+mod state;
 
 use handlers::{
     collections::get_collections, groups::get_groups, members::get_members,

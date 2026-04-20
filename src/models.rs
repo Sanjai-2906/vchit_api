@@ -1,14 +1,15 @@
 use serde::{Serialize,Deserialize};
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Serialize,Deserialize,Default,Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum Mode{
+    #[default]
     CASH,
     UPI,
     CHEQUE
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Serialize,Deserialize,Default,Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionModel{
     pub grp_name: String,

@@ -4,7 +4,6 @@ use rand::prelude::*;
 use crate::models::{GetDueModel,DueModel};
 
 pub async fn get_due_amount(Json(data): Json<GetDueModel>) -> Json<DueModel>{
-    println!("Get Due Model : {:?}",data);
     let mut rng1 = rand::rng();
     let mut rng2 = rand::rng();
 

@@ -641,6 +641,7 @@ name = "vchit_api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "once_cell",
  "rand",
  "serde",
  "serde_json",
