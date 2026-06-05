@@ -1,23 +1,24 @@
 use axum::Json;
-use rand::prelude::*;
+use oracle::Connection;
 
-use crate::models::{GetDueModel,DueModel};
+use crate::models::{DueModel, GetDueModel};
 
-pub async fn get_due_amount(Json(data): Json<GetDueModel>) -> Json<DueModel>{
-    let mut rng1 = rand::rng();
-    let mut rng2 = rand::rng();
+pub async fn get_due_amount(Json(data): Json<GetDueModel>) -> Json<DueModel> {
+    let conn = Connection::connect("vvcpl", "log", "velcloud.in:1521/XE").unwrap();
 
-    let mut pend_due: Vec<i32> = (200..500).collect();
-    let mut current_due: Vec<i32> = (250..700).collect();
-    pend_due.shuffle(&mut rng1);
-    current_due.shuffle(&mut rng2);
-
-    let res =  DueModel{
-        // pending_due: 500.00,
-        pending_due: *pend_due.choose(&mut rng1).unwrap() as f32,
-        // current_due: 450.00
-        current_due: *current_due.choose(&mut rng2).unwrap() as f32,
+    let mut rows = conn
+        .query(
+            "SELECT BAL FROM CHITLIST WHERE PARTYMASTID=:1",
+            &[&data.member_id],
+        )
+        .unwrap();
+    let balance = match rows.next() {
+        Some(row_result) => {
+            let row = row_result.unwrap();
+            row.get::<_, f64>(0).unwrap()
+        }
+        None => 0.0,
     };
 
-    return Json(res);
+    Json(DueModel {balance})
 }

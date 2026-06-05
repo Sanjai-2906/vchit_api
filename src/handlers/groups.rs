@@ -1,12 +1,29 @@
 use axum::Json;
+use oracle::Connection;
 
-pub async fn get_groups() -> Json<Vec<String>> {
-    let group_list: Vec<&str> = vec![
-        "1L A1", "1L A2", "1L A3", "2L A1", "2L A2", "2L A3", "3L A1", "3L A2", "3L A3", "4L A1",
-        "4L A2", "4L A3", "5L A1", "5L A2", "5L A3",
-    ];
+use crate::models::GroupModel;
 
-    let groups: Vec<String> = group_list.iter().map(|group|group.to_string()).collect();
+pub async fn get_groups() -> Json<Vec<GroupModel>> {
+    let conn = Connection::connect("vvcpl", "log", "velcloud.in:1521/XE").unwrap();
+
+    let rows = conn
+        .query(
+            "select chitbasicid, chitgroupno
+             from chitlist
+             group by chitbasicid, chitgroupno
+             order by 2",
+            &[],
+        )
+        .unwrap();
+    let mut groups = Vec::new();
+    for row_result in rows {
+        let row = row_result.unwrap();
+
+        groups.push(GroupModel {
+            group_id: row.get(0).unwrap(),
+            group_name: row.get(1).unwrap(),
+        });
+    }
 
     return Json(groups);
 }

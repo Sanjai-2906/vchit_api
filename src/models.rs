@@ -32,17 +32,28 @@ pub struct SummaryBreakupModel{
 #[serde(rename_all = "camelCase")]
 pub struct GetDueModel{
     pub grp_name: String,
-    pub member_name: String,
+    pub member_id: i64,
 }
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DueModel{
-    pub pending_due: f32,
-    pub current_due: f32,
+    pub balance: f64,
 }
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginModel{
     pub name: String,
     pub pass: String,
+}
+#[derive(Debug,Serialize,Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GroupModel{
+    pub group_id: i64,
+    pub group_name: String,
+}
+#[derive(Debug,Serialize,Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MemberModel{
+    pub member_id: i64,
+    pub member_name: String,
 }
