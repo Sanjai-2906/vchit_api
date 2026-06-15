@@ -25,12 +25,12 @@ async fn main() {
         .route("/ping", post(ping))
         .route("/login", post(user_login))
         .route("/new_collection", post(add_collection))
-        .route("/collectionlist", get(get_collections))
+        .route("/collectionlist/{agent_id}", get(get_collections))
         .route("/due-amount", post(get_due_amount))
         .route("/members", get(get_members))
         .route("/members/{grpName}", get(get_members))
         .route("/groups", get(get_groups))
-        .route("/summary", get(summary_breakup))
+        .route("/summary/{agent_id}", get(summary_breakup))
         .layer(cors);
 
     let ip_port = format!("0.0.0.0:5000");

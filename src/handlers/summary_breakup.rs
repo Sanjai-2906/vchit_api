@@ -1,33 +1,34 @@
-use axum::Json;
+use axum::{Json, extract::Path};
+use oracle::Connection;
 
-use crate::models::{Mode, SummaryBreakupModel};
+use crate::models::SummaryBreakupModel;
 
-use crate::state::COLLECTIONS;
+// use crate::state::COLLECTIONS;
 
-pub async fn summary_breakup() -> Json<SummaryBreakupModel> {
+pub async fn summary_breakup(Path(agent_name): Path<String>) -> Json<SummaryBreakupModel> {
+    println!("Summary - Agent Name: {}",agent_name);
+    let conn = Connection::connect("vvcpl", "log", "velcloud.in:1521/XE").unwrap();
 
-    let collections = COLLECTIONS.lock().await;
+    let mut rows = conn
+        .query(
+            "SELECT
+                    SUM(AMOUNT) AS TOTAL_AMOUNT,
+                    SUM(CASE WHEN TYPE = 'CASH' THEN AMOUNT ELSE 0 END) AS CASH_AMOUNT,
+                    SUM(CASE WHEN TYPE = 'UPI' THEN AMOUNT ELSE 0 END) AS UPI_AMOUNT,
+                    SUM(CASE WHEN TYPE = 'CHEQUE' THEN AMOUNT ELSE 0 END) AS CHEQUE_AMOUNT
+                FROM MOB
+                WHERE COLLECTEDBY = :1",
+            &[&agent_name],
+        )
+        .unwrap();
 
-    let mut total_amount = 0.0;
-    let mut cash_amount = 0.0;
-    let mut upi_amount = 0.0;
-    let mut cheque_amount = 0.0;
-
-    for item in collections.iter() {
-        total_amount += item.amount;
-
-        match item.mode {
-            Mode::CASH => cash_amount += item.amount,
-            Mode::UPI => upi_amount += item.amount,
-            Mode::CHEQUE => cheque_amount += item.amount,
-        }
-    }
+    let row = rows.next().unwrap().unwrap();
 
     let summary = SummaryBreakupModel {
-        total_amount,
-        cash_amount,
-        upi_amount,
-        cheque_amount,
+        total_amount: row.get::<_, Option<f64>>(0).unwrap().unwrap_or(0.0),
+        cash_amount: row.get::<_, Option<f64>>(1).unwrap().unwrap_or(0.0),
+        upi_amount: row.get::<_, Option<f64>>(2).unwrap().unwrap_or(0.0),
+        cheque_amount: row.get::<_, Option<f64>>(3).unwrap().unwrap_or(0.0),
     };
 
     Json(summary)
