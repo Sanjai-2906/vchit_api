@@ -13,9 +13,9 @@ pub async fn summary_breakup(Path(agent_name): Path<String>) -> Json<SummaryBrea
         .query(
             "SELECT
                     SUM(AMOUNT) AS TOTAL_AMOUNT,
-                    SUM(CASE WHEN TYPE = 'CASH' THEN AMOUNT ELSE 0 END) AS CASH_AMOUNT,
+                    SUM(CASE WHEN TYPE = 'Cash' THEN AMOUNT ELSE 0 END) AS CASH_AMOUNT,
                     SUM(CASE WHEN TYPE = 'UPI' THEN AMOUNT ELSE 0 END) AS UPI_AMOUNT,
-                    SUM(CASE WHEN TYPE = 'CHEQUE' THEN AMOUNT ELSE 0 END) AS CHEQUE_AMOUNT
+                    SUM(CASE WHEN TYPE = 'Cheque' THEN AMOUNT ELSE 0 END) AS CHEQUE_AMOUNT
                 FROM MOB
                 WHERE COLLECTEDBY = :1",
             &[&agent_name],

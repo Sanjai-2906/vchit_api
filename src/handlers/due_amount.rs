@@ -4,6 +4,7 @@ use oracle::Connection;
 use crate::models::{DueModel, GetDueModel};
 
 pub async fn get_due_amount(Json(data): Json<GetDueModel>) -> Json<DueModel> {
+    println!("Get Due Amount: {:?}",data);
     let conn = Connection::connect("vvcpl", "log", "velcloud.in:1521/XE").unwrap();
 
     let mut rows = conn
