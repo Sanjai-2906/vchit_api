@@ -13,7 +13,7 @@ pub enum Mode{
 #[derive(Debug,Serialize,Deserialize,Default,Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionModel{
-    pub doc_id: String,
+    // pub doc_id: String,
     pub doc_date: String,
     pub collected_by: String,
     pub group_no: String,
@@ -47,6 +47,7 @@ pub struct GetDueModel{
 #[serde(rename_all = "camelCase")]
 pub struct DueModel{
     pub balance: f64,
+    pub next_balance: f64,
 }
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
