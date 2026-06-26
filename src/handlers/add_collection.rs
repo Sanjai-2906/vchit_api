@@ -8,24 +8,15 @@ pub async fn add_collection(Json(collection): Json<CollectionModel>) {
     let conn = Connection::connect("vvcpl", "log", "velcloud.in:1521/XE").unwrap();
     
     conn.execute(
-        // "INSERT INTO MOB (
-        //     DOCID, DOCDATE, COLLECTEDBY, GROUPNO, PARTYMASTID, PARTYID, 
-        //     MOBILE, AMOUNT, TYPE, DUEAMOUNT, BAL, CHEQUEDATE, CHEQUENO
-        //  )
-        //  VALUES (
-        //     :1, TO_DATE(:2, 'YYYY-MM-DD'), :3, :4, :5, :6, 
-        //     :7, :8, :9, :10, :11, TO_DATE(:12, 'YYYY-MM-DD'), :13
-        //  )",
         "INSERT INTO MOB (
-            DOCDATE, COLLECTEDBY, GROUPNO, PARTYMASTID, PARTYID, 
+            DOCID, DOCDATE, COLLECTEDBY, GROUPNO, PARTYMASTID, PARTYID, 
             MOBILE, AMOUNT, TYPE, DUEAMOUNT, BAL, CHEQUEDATE, CHEQUENO
          )
          VALUES (
-            TO_DATE(:1, 'YYYY-MM-DD'), :2, :3, :4, :5, :6, 
-            :7, :8, :9, :10, TO_DATE(:11, 'YYYY-MM-DD'), :12
+            (SELECT TO_CHAR(NVL(MAX(TO_NUMBER(DOCID)), 0) + 1) FROM MOB), TO_DATE(:2, 'YYYY-MM-DD'), :3, :4, :5, :6, 
+            :7, :8, :9, :10, :11, TO_DATE(:12, 'YYYY-MM-DD'), :13
          )",
         &[ 
-            // &collection.doc_id,
             &collection.doc_date,
             &collection.collected_by,
             &collection.group_no,

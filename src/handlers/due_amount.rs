@@ -9,7 +9,7 @@ pub async fn get_due_amount(Json(data): Json<GetDueModel>) -> Json<DueModel> {
 
     let mut rows = conn
         .query(
-            "SELECT BAL, NEXTBALANCE FROM CHITLIST WHERE PARTYMASTID=:1",
+            "SELECT CURRENTDUE, NEXTBALANCE FROM CHITLIST WHERE PARTYMASTID=:1",
             &[&data.member_id],
         )
         .unwrap();
@@ -17,9 +17,12 @@ pub async fn get_due_amount(Json(data): Json<GetDueModel>) -> Json<DueModel> {
         Some(row_result) => {
             let row = row_result.unwrap();
 
-            (row.get::<_, f64>(0).unwrap(), row.get::<_, f64>(1).unwrap())
+            (
+                row.get::<_, Option<f64>>(0).unwrap(),
+                row.get::<_, Option<f64>>(1).unwrap(),
+            )
         }
-        None => (0.0, 0.0),
+        None => (Some(0.0), Some(0.0)),
     };
 
     Json(DueModel {

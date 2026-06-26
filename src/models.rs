@@ -2,15 +2,6 @@ use chrono::NaiveDateTime;
 use serde::{Serialize,Deserialize};
 
 #[derive(Debug,Serialize,Deserialize,Default,Clone)]
-#[serde(rename_all = "lowercase")]
-pub enum Mode{
-    #[default]
-    CASH,
-    UPI,
-    CHEQUE
-}
-
-#[derive(Debug,Serialize,Deserialize,Default,Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionModel{
     // pub doc_id: String,
@@ -19,11 +10,11 @@ pub struct CollectionModel{
     pub group_no: String,
     pub party_mast_id: u64,
     pub party_id: String,
-    pub mobile: String,
+    pub mobile: Option<String>,
     pub amount: f64,
     #[serde(rename = "type")]
     pub r#type: String,
-    pub due_amount: f64,
+    pub due_amount: Option<f64>,
     pub bal: f64,
     pub cheque_date: Option<String>,
     pub cheque_no: Option<String>,
@@ -46,8 +37,8 @@ pub struct GetDueModel{
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DueModel{
-    pub balance: f64,
-    pub next_balance: f64,
+    pub balance: Option<f64>,
+    pub next_balance: Option<f64>,
 }
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
