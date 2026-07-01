@@ -14,7 +14,7 @@ pub async fn get_collections(Path(agent_name): Path<String>) -> Json<Vec<GetColl
     let rows = conn
         .query(
             "SELECT PARTYMASTID, PARTYID, GROUPNO, 
-             AMOUNT, TYPE  FROM MOB WHERE COLLECTEDBY = :1
+             AMOUNT, TYPE, DOCID  FROM MOB WHERE COLLECTEDBY = :1
              ORDER BY MOBID DESC",
             &[&agent_name],
         )
@@ -29,6 +29,7 @@ pub async fn get_collections(Path(agent_name): Path<String>) -> Json<Vec<GetColl
             group_no: row.get(2).unwrap(),       
             amount: row.get(3).unwrap(),         
             collection_type: row.get(4).unwrap(),
+            doc_id: row.get(5).unwrap(),
         };
 
         collection_list.push(model);

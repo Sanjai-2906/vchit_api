@@ -37,8 +37,8 @@ pub struct GetDueModel{
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DueModel{
-    pub balance: Option<f64>,
-    pub next_balance: Option<f64>,
+    pub balance: f64,
+    pub next_balance: f64,
 }
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -64,6 +64,7 @@ pub struct MemberModel{
 #[serde(rename_all = "camelCase")]
 pub struct GetCollectionModel{
     pub party_id: String,
+    pub doc_id: String,
     pub party_mast_id: i64,
     pub group_no: String,
     pub collection_type: String,
