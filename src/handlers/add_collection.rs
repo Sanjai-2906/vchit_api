@@ -1,12 +1,18 @@
-use axum::Json;
+use axum::{Json, extract::State};
 use oracle::Connection;
 
-use crate::models::CollectionModel;
+use crate::{AppConfig, models::CollectionModel};
 
-pub async fn add_collection(Json(collection): Json<CollectionModel>) {
-    println!("User Collection : {:#?}", collection);
-    let conn = Connection::connect("vvcpl", "log", "velcloud.in:1521/XE").unwrap();
-
+pub async fn add_collection(
+    State(config): State<AppConfig>,
+    Json(collection): Json<CollectionModel>,
+) {
+    let conn = Connection::connect(
+        &config.oracle_user,
+        &config.oracle_password,
+        &config.oracle_connect_string,
+    )
+    .unwrap();
     conn.execute(
         "INSERT INTO MOB (
         DOCID, DOCDATE, COLLECTEDBY, GROUPNO, PARTYMASTID, PARTYID,

@@ -1,11 +1,17 @@
-use axum::{Json, http::StatusCode, response::IntoResponse};
+use crate::AppConfig;
+use crate::models::LoginModel;
+use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
 use oracle::Connection;
 
-use crate::models::LoginModel;
-
-pub async fn user_login(Json(data): Json<LoginModel>) -> impl IntoResponse {
-    println!("Function Call");
-    let conn = match Connection::connect("vvcpl", "log", "velcloud.in:1521/XE") {
+pub async fn user_login(
+    State(config): State<AppConfig>,
+    Json(data): Json<LoginModel>,
+) -> impl IntoResponse {
+    let conn = match Connection::connect(
+        &config.oracle_user,
+        &config.oracle_password,
+        &config.oracle_connect_string,
+    ) {
         Ok(c) => c,
         Err(_) => {
             return (

@@ -1,11 +1,15 @@
-use axum::Json;
+use axum::{Json, extract::State};
 use oracle::Connection;
 
-use crate::models::GroupModel;
+use crate::{AppConfig, models::GroupModel};
 
-pub async fn get_groups() -> Json<Vec<GroupModel>> {
-    let conn = Connection::connect("vvcpl", "log", "velcloud.in:1521/XE").unwrap();
-
+pub async fn get_groups(State(config): State<AppConfig>) -> Json<Vec<GroupModel>> {
+    let conn = Connection::connect(
+        &config.oracle_user,
+        &config.oracle_password,
+        &config.oracle_connect_string,
+    )
+    .unwrap();
     let rows = conn
         .query(
             "select chitbasicid, chitgroupno

@@ -70,3 +70,4 @@ pub struct GetCollectionModel{
     pub collection_type: String,
     pub amount: f64,
 }
+

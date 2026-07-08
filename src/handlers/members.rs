@@ -1,11 +1,17 @@
-use axum::{Json, extract::Path};
+use axum::{Json, extract::{Path, State}};
 use oracle::Connection;
 
-use crate::models::MemberModel;
-pub async fn get_members(grp_name: Option<Path<String>>) -> Json<Vec<MemberModel>> {
-    println!("Group Name: {:?}",grp_name);
-    let conn = Connection::connect("vvcpl", "log", "velcloud.in:1521/XE").unwrap();
-
+use crate::{AppConfig, models::MemberModel};
+pub async fn get_members(
+    State(config): State<AppConfig>,
+    grp_name: Option<Path<String>>,
+) -> Json<Vec<MemberModel>> {
+    let conn = Connection::connect(
+        &config.oracle_user,
+        &config.oracle_password,
+        &config.oracle_connect_string,
+    )
+    .unwrap();
     let mut members = Vec::new();
 
     let rows = match grp_name {
@@ -32,21 +38,13 @@ pub async fn get_members(grp_name: Option<Path<String>>) -> Json<Vec<MemberModel
             .unwrap(),
     };
 
-    // for row_result in rows {
-    //     let row = row_result.unwrap();
-
-    //     members.push(MemberModel {
-    //         member_id: row.get(0).unwrap(),
-    //         member_name: row.get(1).unwrap(),
-    //     });
-    // }
     for row_result in rows {
         let row = row_result.unwrap();
 
         let member_id: i64 = row.get(0).unwrap();
 
         let member_name: Option<String> = row.get(1).unwrap();
-        
+
         let mobile: Option<String> = row.get(2).unwrap();
 
         if let Some(name) = member_name {

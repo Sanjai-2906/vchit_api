@@ -4,7 +4,6 @@ use axum::{
 };
 mod handlers;
 mod models;
-mod state;
 
 use handlers::{
     add_collection::add_collection, collections::get_collections, due_amount::get_due_amount,
@@ -13,9 +12,28 @@ use handlers::{
 };
 use tower_http::cors::{Any, CorsLayer};
 
+#[derive(Clone)]
+pub struct AppConfig {
+    pub oracle_user: String,
+    pub oracle_password: String,
+    pub oracle_connect_string: String,
+}
+impl AppConfig {
+    pub fn from_env() -> Self {
+        dotenvy::dotenv().ok();
+
+        Self {
+            oracle_user: std::env::var("ORACLE_USER").expect("ORACLE_USER not set"),
+            oracle_password: std::env::var("ORACLE_PASSWORD").expect("ORACLE_PASSWORD not set"),
+            oracle_connect_string: std::env::var("ORACLE_CONNECT_STRING")
+                .expect("ORACLE_CONNECT_STRING not set"),
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
-   
+    let config = AppConfig::from_env();
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
@@ -31,7 +49,8 @@ async fn main() {
         .route("/members/{grpName}", get(get_members))
         .route("/groups", get(get_groups))
         .route("/summary/{agent_id}", get(summary_breakup))
-        .layer(cors);
+        .layer(cors)
+        .with_state(config);
 
     let ip_port = format!("0.0.0.0:5000");
     println!("Server start at {}", ip_port);

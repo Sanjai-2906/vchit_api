@@ -1,14 +1,18 @@
-use axum::{Json, extract::Path};
+use crate::AppConfig;
+use crate::models::SummaryBreakupModel;
+use axum::{Json, extract::{Path,State}};
 use oracle::Connection;
 
-use crate::models::SummaryBreakupModel;
-
-// use crate::state::COLLECTIONS;
-
-pub async fn summary_breakup(Path(agent_name): Path<String>) -> Json<SummaryBreakupModel> {
-    println!("Summary - Agent Name: {}",agent_name);
-    let conn = Connection::connect("vvcpl", "log", "velcloud.in:1521/XE").unwrap();
-
+pub async fn summary_breakup(
+    State(config): State<AppConfig>,
+    Path(agent_name): Path<String>,
+) -> Json<SummaryBreakupModel> {
+    let conn = Connection::connect(
+        &config.oracle_user,
+        &config.oracle_password,
+        &config.oracle_connect_string,
+    )
+    .unwrap();
     let mut rows = conn
         .query(
             "SELECT
