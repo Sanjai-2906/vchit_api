@@ -1,51 +1,65 @@
-use crate::AppConfig;
+use crate::AppState;
 use crate::models::LoginModel;
-use axum::{Json, extract::State, http::StatusCode, response::IntoResponse};
-use oracle::Connection;
-
+use axum::{Json, extract::State, http::StatusCode};
 pub async fn user_login(
-    State(config): State<AppConfig>,
+    State(state): State<AppState>,
     Json(data): Json<LoginModel>,
-) -> impl IntoResponse {
-    let conn = match Connection::connect(
-        &config.oracle_user,
-        &config.oracle_password,
-        &config.oracle_connect_string,
-    ) {
-        Ok(c) => c,
-        Err(_) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Database connection error",
-            )
-                .into_response();
-        }
-    };
-    let stmt_result = conn.query(
-        "select auser1id, apassword from auser1 where ausername = :1",
-        &[&data.name],
-    );
-    let rows = match stmt_result {
-        Ok(r) => r,
-        Err(_) => {
-            println!("User name not found");
-            return (StatusCode::UNAUTHORIZED, "User name not found").into_response();
-        }
-    };
-    for row_result in rows {
-        if let Ok(row) = row_result {
-            let db_password: Option<String> = row.get(1).unwrap_or(None);
-            let id: Option<u64> = row.get(0).unwrap_or(None);
+) -> Result<Json<u64>, (StatusCode, String)> {
+    let conn = state.pool.get().map_err(|err| {
+        eprintln!("Database Connection Error: {:?}", err);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Database connection failure".to_string(),
+        )
+    })?;
 
-            if let Some(stored_password) = db_password {
-                if stored_password == data.pass {
-                    return (StatusCode::OK, Json(id)).into_response();
+    let rows = conn
+        .query(
+            "SELECT auser1id, apassword
+             FROM auser1
+             WHERE ausername = :1",
+            &[&data.name],
+        )
+        .map_err(|err| {
+            eprintln!("Database Query Error: {:?}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database query failure".to_string(),
+            )
+        })?;
+
+    for row_result in rows {
+        let row = row_result.map_err(|err| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to read row: {}", err),
+            )
+        })?;
+
+        let id: Option<u64> = row
+            .get(0)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        let db_password: Option<String> = row
+            .get(1)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        match (id, db_password) {
+            (Some(id), Some(password)) => {
+                if password == data.pass {
+                    return Ok(Json(id));
                 } else {
-                    println!("password wrong");
-                    return (StatusCode::UNAUTHORIZED, "Password Incorrect").into_response();
+                    return Err((StatusCode::UNAUTHORIZED, "Password Incorrect".to_string()));
                 }
+            }
+            _ => {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    "User record contains NULL values".to_string(),
+                ));
             }
         }
     }
-    return (StatusCode::OK, "Executed").into_response();
+
+    Err((StatusCode::UNAUTHORIZED, "User name not found".to_string()))
 }

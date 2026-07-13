@@ -1,18 +1,21 @@
-use crate::AppConfig;
 use crate::models::SummaryBreakupModel;
-use axum::{Json, extract::{Path,State}};
-use oracle::Connection;
-
+use crate::{AppState, models::CollectionRequestModel};
+use axum::{
+    Json,
+    extract::State,
+    http::StatusCode,
+};
 pub async fn summary_breakup(
-    State(config): State<AppConfig>,
-    Path(agent_name): Path<String>,
-) -> Json<SummaryBreakupModel> {
-    let conn = Connection::connect(
-        &config.oracle_user,
-        &config.oracle_password,
-        &config.oracle_connect_string,
-    )
-    .unwrap();
+    State(state): State<AppState>,
+    Json(user_data): Json<CollectionRequestModel>,
+) -> Result<Json<SummaryBreakupModel>, (StatusCode, String)> {
+    let conn = state.pool.get().map_err(|err| {
+        eprintln!("Database Connection Error: {:?}", err);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Database connection failure".to_string(),
+        )
+    })?;
     let mut rows = conn
         .query(
             "SELECT
@@ -21,10 +24,18 @@ pub async fn summary_breakup(
                     SUM(CASE WHEN TYPE = 'UPI' THEN AMOUNT ELSE 0 END) AS UPI_AMOUNT,
                     SUM(CASE WHEN TYPE = 'Cheque' THEN AMOUNT ELSE 0 END) AS CHEQUE_AMOUNT
                 FROM MOB
-                WHERE COLLECTEDBY = :1",
-            &[&agent_name],
+                WHERE COLLECTEDBY = :1
+                    AND DOCDATE >= TO_DATE(:2, 'YYYY-MM-DD')
+                    AND DOCDATE < TO_DATE(:2, 'YYYY-MM-DD') + 1",
+            &[&user_data.agent_name, &user_data.doc_date],
         )
-        .unwrap();
+        .map_err(|err| {
+            eprintln!("Database Query Error: {:?}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database operational error occurred".to_string(),
+            )
+        })?;
 
     let row = rows.next().unwrap().unwrap();
 
@@ -35,5 +46,5 @@ pub async fn summary_breakup(
         cheque_amount: row.get::<_, Option<f64>>(3).unwrap().unwrap_or(0.0),
     };
 
-    Json(summary)
+    Ok(Json(summary))
 }

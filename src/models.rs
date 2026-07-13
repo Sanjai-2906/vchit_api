@@ -62,12 +62,18 @@ pub struct MemberModel{
 }
 #[derive(Debug,Serialize,Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct GetCollectionModel{
+pub struct CollectionResponseModel{
     pub party_id: String,
     pub doc_id: String,
     pub party_mast_id: i64,
     pub group_no: String,
     pub collection_type: String,
     pub amount: f64,
+}
+#[derive(Debug,Serialize,Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionRequestModel{
+    pub agent_name: String,
+    pub doc_date: String,
 }
 

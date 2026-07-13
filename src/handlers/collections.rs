@@ -1,41 +1,114 @@
-use crate::AppConfig;
-use crate::models::GetCollectionModel;
+use crate::AppState;
+use crate::models::{CollectionRequestModel, CollectionResponseModel};
 use axum::Json;
-use axum::extract::{Path, State};
-use oracle::Connection;
-
+use axum::extract::State;
+use axum::http::StatusCode;
 pub async fn get_collections(
-    State(config): State<AppConfig>,
-    Path(agent_name): Path<String>,
-) -> Json<Vec<GetCollectionModel>> {
-    let conn = Connection::connect(
-        &config.oracle_user,
-        &config.oracle_password,
-        &config.oracle_connect_string,
-    )
-    .unwrap();
+    State(state): State<AppState>,
+    Json(user_data): Json<CollectionRequestModel>,
+) -> Result<Json<Vec<CollectionResponseModel>>, (StatusCode, String)> {
+    let conn = state.pool.get()
+    .map_err(|err| {
+        eprintln!("Database Connection Error: {:?}", err);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Database connection failure".to_string(),
+        )
+    })?;
+
     let rows = conn
         .query(
-            "SELECT PARTYMASTID, PARTYID, GROUPNO, 
-             AMOUNT, TYPE, DOCID  FROM MOB WHERE COLLECTEDBY = :1
+            "SELECT PARTYMASTID,
+                    PARTYID,
+                    GROUPNO,
+                    AMOUNT,
+                    TYPE,
+                    DOCID
+             FROM MOB
+             WHERE COLLECTEDBY = :1
+               AND DOCDATE >= TO_DATE(:2, 'YYYY-MM-DD')
+               AND DOCDATE < TO_DATE(:2, 'YYYY-MM-DD') + 1
              ORDER BY MOBID DESC",
-            &[&agent_name],
+            &[&user_data.agent_name, &user_data.doc_date],
         )
-        .unwrap();
-    let mut collection_list = Vec::new();
-    for row_result in rows {
-        let row = row_result.unwrap();
+        .map_err(|err| {
+            eprintln!("Database Query Error: {:?}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database operational error occurred".to_string(),
+            )
+        })?;
 
-        let model = GetCollectionModel {
-            party_mast_id: row.get(0).unwrap(),
-            party_id: row.get(1).unwrap(),
-            group_no: row.get(2).unwrap(),
-            amount: row.get(3).unwrap(),
-            collection_type: row.get(4).unwrap(),
-            doc_id: row.get(5).unwrap(),
-        };
+    let mut collections = Vec::new();
 
-        collection_list.push(model);
+    for (index, row_result) in rows.into_iter().enumerate() {
+        let row = row_result.map_err(|err| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to parse row at index {}: {}", index, err),
+            )
+        })?;
+
+        let party_mast_id: Option<i64> = row
+            .get(0)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        let party_id: Option<String> = row
+            .get(1)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        let group_no: Option<String> = row
+            .get(2)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        let amount: Option<f64> = row
+            .get(3)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        let collection_type: Option<String> = row
+            .get(4)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        let doc_id: Option<String> = row
+            .get(5)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        match (
+            party_mast_id,
+            party_id,
+            group_no,
+            amount,
+            collection_type,
+            doc_id,
+        ) {
+            (
+                Some(party_mast_id),
+                Some(party_id),
+                Some(group_no),
+                Some(amount),
+                Some(collection_type),
+                Some(doc_id),
+            ) => {
+                collections.push(CollectionResponseModel {
+                    party_mast_id,
+                    party_id,
+                    group_no,
+                    amount,
+                    collection_type,
+                    doc_id,
+                });
+            }
+            _ => {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    format!(
+                        "Database requirement constraint failed: Row index {} contains a NULL value.",
+                        index
+                    ),
+                ));
+            }
+        }
     }
-    return Json(collection_list);
+
+    Ok(Json(collections))
 }
