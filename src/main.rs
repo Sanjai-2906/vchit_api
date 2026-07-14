@@ -46,7 +46,7 @@ async fn main() {
         &config.oracle_password,
         &config.oracle_connect_string,
     )
-    .max_connections(50)
+    .max_connections(100)
     .min_connections(5)
     .build()
     .unwrap();

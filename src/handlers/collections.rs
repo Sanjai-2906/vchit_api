@@ -3,6 +3,7 @@ use crate::models::{CollectionRequestModel, CollectionResponseModel};
 use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
+use chrono::NaiveDate;
 pub async fn get_collections(
     State(state): State<AppState>,
     Json(user_data): Json<CollectionRequestModel>,
@@ -23,6 +24,8 @@ pub async fn get_collections(
                     GROUPNO,
                     AMOUNT,
                     TYPE,
+                    CHEQUENO,
+                    CHEQUEDATE,
                     DOCID
              FROM MOB
              WHERE COLLECTEDBY = :1
@@ -68,9 +71,17 @@ pub async fn get_collections(
         let collection_type: Option<String> = row
             .get(4)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        
+       let cheque_no: Option<String> = row
+            .get(5)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        let cheque_date: Option<NaiveDate> = row
+            .get(6)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
         let doc_id: Option<String> = row
-            .get(5)
+            .get(7)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
         match (
@@ -95,6 +106,8 @@ pub async fn get_collections(
                     group_no,
                     amount,
                     collection_type,
+                    cheque_no,
+                    cheque_date,
                     doc_id,
                 });
             }
