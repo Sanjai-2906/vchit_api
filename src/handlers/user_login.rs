@@ -1,23 +1,24 @@
-use crate::AppState;
+use crate::{AppState, get_connection::get_connection};
 use crate::models::LoginModel;
 use axum::{Json, extract::State, http::StatusCode};
+use chrono::Local;
 pub async fn user_login(
     State(state): State<AppState>,
     Json(data): Json<LoginModel>,
 ) -> Result<Json<u64>, (StatusCode, String)> {
-    let conn = state.pool.get().map_err(|err| {
-        eprintln!("Database Connection Error: {:?}", err);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Database connection failure".to_string(),
-        )
-    })?;
+    let conn = get_connection(&state.pool).await?;
+    
+    let today = Local::now().date_naive();
+    println!("Today Date: {}", today);
+    if today != data.logged_at.date() {
+        return Err((StatusCode::UNAUTHORIZED, "Session Expired".to_string()));
+    }
 
-    let rows = conn
+    let rows = {conn
         .query(
             "SELECT auser1id, apassword
              FROM auser1
-             WHERE ausername = :1",
+             WHERE lower(ausername) = lower(:1)",
             &[&data.name],
         )
         .map_err(|err| {
@@ -26,7 +27,7 @@ pub async fn user_login(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Database query failure".to_string(),
             )
-        })?;
+        })?};
 
     for row_result in rows {
         let row = row_result.map_err(|err| {

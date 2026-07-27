@@ -1,9 +1,12 @@
+use std::time::Duration;
+
 use axum::{
     Router,
     routing::{get, post},
 };
 mod handlers;
 mod models;
+mod get_connection;
 
 use handlers::{
     add_collection::add_collection, collections::get_collections, due_amount::get_due_amount,
@@ -38,18 +41,23 @@ impl AppConfig {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), String> {
     let config = AppConfig::from_env();
 
-    let pool = PoolBuilder::new(
+    let mut builder = PoolBuilder::new(
         &config.oracle_user,
         &config.oracle_password,
         &config.oracle_connect_string,
-    )
-    .max_connections(100)
-    .min_connections(5)
-    .build()
-    .unwrap();
+    );
+
+    let _ = builder
+        .min_connections(5)
+        .max_connections(100)
+        .timeout(Duration::from_secs(10));
+
+    let pool = builder
+        .build()
+        .map_err(|err: oracle::Error| err.to_string())?;
 
     let state = AppState { pool };
     let cors = CorsLayer::new()
@@ -74,7 +82,12 @@ async fn main() {
     let ip_port = format!("0.0.0.0:5000");
     println!("Server start at {}", ip_port);
     let listener = tokio::net::TcpListener::bind(ip_port).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    // axum::serve(listener, app).await.unwrap();
+    let _ = axum::serve(listener, app)
+        .await
+        .map_err(|err| err.to_string())?;
+
+    Ok(())
 }
 
 async fn ping(msg: String) -> String {

@@ -1,4 +1,5 @@
 use crate::AppState;
+use crate::get_connection::get_connection;
 use crate::models::{CollectionRequestModel, CollectionResponseModel};
 use axum::Json;
 use axum::extract::State;
@@ -8,16 +9,17 @@ pub async fn get_collections(
     State(state): State<AppState>,
     Json(user_data): Json<CollectionRequestModel>,
 ) -> Result<Json<Vec<CollectionResponseModel>>, (StatusCode, String)> {
-    let conn = state.pool.get()
-    .map_err(|err| {
-        eprintln!("Database Connection Error: {:?}", err);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Database connection failure".to_string(),
-        )
-    })?;
+    // let conn = state.pool.get()
+    // .map_err(|err| {
+    //     eprintln!("Database Connection Error: {:?}", err);
+    //     (
+    //         StatusCode::INTERNAL_SERVER_ERROR,
+    //         "Database connection failure".to_string(),
+    //     )
+    // })?;
+    let conn = get_connection(&state.pool).await?;
 
-    let rows = conn
+    let rows = {conn
         .query(
             "SELECT PARTYMASTID,
                     PARTYID,
@@ -28,7 +30,7 @@ pub async fn get_collections(
                     CHEQUEDATE,
                     DOCID
              FROM MOB
-             WHERE COLLECTEDBY = :1
+             WHERE UPPER(COLLECTEDBY) = UPPER(:1)
                AND DOCDATE >= TO_DATE(:2, 'YYYY-MM-DD')
                AND DOCDATE < TO_DATE(:2, 'YYYY-MM-DD') + 1
              ORDER BY MOBID DESC",
@@ -40,7 +42,8 @@ pub async fn get_collections(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Database operational error occurred".to_string(),
             )
-        })?;
+        })?
+    };
 
     let mut collections = Vec::new();
 
@@ -71,8 +74,8 @@ pub async fn get_collections(
         let collection_type: Option<String> = row
             .get(4)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-        
-       let cheque_no: Option<String> = row
+
+        let cheque_no: Option<String> = row
             .get(5)
             .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 

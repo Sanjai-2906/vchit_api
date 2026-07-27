@@ -1,18 +1,11 @@
 use axum::{Json, extract::State, http::StatusCode};
-use crate::{AppState, models::CollectionModel};
+use crate::{AppState, get_connection::get_connection, models::CollectionModel};
 
 pub async fn add_collection(
     State(state): State<AppState>,
     Json(collection): Json<CollectionModel>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let conn = state.pool.get()
-    .map_err(|err| {
-        eprintln!("Database Connection Error: {:?}", err);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Database connection failure".to_string(),
-        )
-    })?;
+    let conn = get_connection(&state.pool).await?;
 
     conn.execute(
         "INSERT INTO MOB (

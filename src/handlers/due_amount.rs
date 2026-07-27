@@ -1,45 +1,13 @@
 use axum::{Json, extract::State, http::StatusCode};
 use crate::{
-    AppState,
-    models::{DueModel, GetDueModel},
+    AppState, get_connection::get_connection, models::{DueModel, GetDueModel},
 };
-
-// pub async fn get_due_amount(
-//     State(config): State<AppConfig>,
-//     Json(data): Json<GetDueModel>,
-// ) -> Json<DueModel> {
-//     let conn = Connection::connect(
-//         &config.oracle_user,
-//         &config.oracle_password,
-//         &config.oracle_connect_string,
-//     )
-//     .unwrap();
-//     let row = conn
-//         .query_row(
-//             "SELECT CURRENTDUE, NEXTBALANCE FROM CHITLIST WHERE PARTYMASTID=:1",
-//             &[&data.member_id],
-//         )
-//         .unwrap();
-
-//     let balance: f64 = row.get(0).unwrap();
-//     let next_balance: f64 = row.get(1).unwrap();
-//     Json(DueModel {
-//         balance,
-//         next_balance,
-//     })
-// }
 
 pub async fn get_due_amount(
     State(state): State<AppState>,
     Json(data): Json<GetDueModel>,
 ) -> Result<Json<DueModel>, (StatusCode, String)> {
-    let conn = state.pool.get().map_err(|err| {
-        eprintln!("Database Connection Error: {:?}", err);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Database connection failure".to_string(),
-        )
-    })?;
+    let conn = get_connection(&state.pool).await?;
 
     let row = conn
         .query_row(

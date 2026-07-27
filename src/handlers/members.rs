@@ -1,4 +1,4 @@
-use crate::{AppState, models::MemberModel};
+use crate::{AppState, get_connection::get_connection, models::MemberModel};
 use axum::{
     Json,
     extract::{Path, State},
@@ -10,25 +10,7 @@ pub async fn get_members(
     State(state): State<AppState>,
     grp_name: Option<Path<String>>,
 ) -> Result<Json<Vec<MemberModel>>, (StatusCode, String)> {
-    // let conn = Connection::connect(
-    //     &config.oracle_user,
-    //     &config.oracle_password,
-    //     &config.oracle_connect_string,
-    // )
-    // .map_err(|err| {
-    //     eprintln!("Database Connection Error: {:?}", err);
-    //     (
-    //         StatusCode::INTERNAL_SERVER_ERROR,
-    //         "Database connection failure".to_string(),
-    //     )
-    // })?;
-    let conn = state.pool.get().map_err(|err| {
-        eprintln!("Database Connection Error: {:?}", err);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Database connection failure".to_string(),
-        )
-    })?;
+    let conn = get_connection(&state.pool).await?;
 
     let mut members = Vec::new();
 
