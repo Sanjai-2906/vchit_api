@@ -9,14 +9,6 @@ pub async fn get_collections(
     State(state): State<AppState>,
     Json(user_data): Json<CollectionRequestModel>,
 ) -> Result<Json<Vec<CollectionResponseModel>>, (StatusCode, String)> {
-    // let conn = state.pool.get()
-    // .map_err(|err| {
-    //     eprintln!("Database Connection Error: {:?}", err);
-    //     (
-    //         StatusCode::INTERNAL_SERVER_ERROR,
-    //         "Database connection failure".to_string(),
-    //     )
-    // })?;
     let conn = get_connection(&state.pool).await?;
 
     let rows = {conn
@@ -30,7 +22,7 @@ pub async fn get_collections(
                     CHEQUEDATE,
                     DOCID
              FROM MOB
-             WHERE UPPER(COLLECTEDBY) = UPPER(:1)
+             WHERE COLLECTEDBY = :1
                AND DOCDATE >= TO_DATE(:2, 'YYYY-MM-DD')
                AND DOCDATE < TO_DATE(:2, 'YYYY-MM-DD') + 1
              ORDER BY MOBID DESC",

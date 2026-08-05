@@ -18,7 +18,7 @@ pub async fn user_login(
         .query(
             "SELECT auser1id, apassword
              FROM auser1
-             WHERE lower(ausername) = lower(:1)",
+             WHERE ausername = :1",
             &[&data.name],
         )
         .map_err(|err| {

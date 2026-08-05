@@ -19,7 +19,7 @@ pub async fn summary_breakup(
                     SUM(CASE WHEN TYPE = 'UPI' THEN AMOUNT ELSE 0 END) AS UPI_AMOUNT,
                     SUM(CASE WHEN TYPE = 'Cheque' THEN AMOUNT ELSE 0 END) AS CHEQUE_AMOUNT
                 FROM MOB
-                WHERE UPPER(COLLECTEDBY) = UPPER(:1)
+                WHERE COLLECTEDBY = :1
                     AND DOCDATE >= TO_DATE(:2, 'YYYY-MM-DD')
                     AND DOCDATE < TO_DATE(:2, 'YYYY-MM-DD') + 1",
             &[&user_data.agent_name, &user_data.doc_date],

@@ -78,3 +78,13 @@ pub struct CollectionRequestModel {
     pub agent_name: String,
     pub doc_date: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SmsParams {
+    pub key: String,
+    pub route: String,
+    pub sender: String,
+    pub number: String,
+    pub templateid: String,
+    pub sms: String,
+}
