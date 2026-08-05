@@ -101,14 +101,6 @@ pub async fn add_collection(
         .as_ref()
         .ok_or((StatusCode::CONFLICT, "Mobile number is Null".to_string()))?;
 
-    // let params = vec![
-    //     ("key", "cb2c3cee7073db699b9921ab5d738ce7".to_string()),
-    //     ("route", "2".to_string()),
-    //     ("sender", "VVCPLd".to_string()),
-    //     ("number", mobile.clone()),
-    //     ("templateid", "1607100000000102140".to_string()),
-    //     ("sms", sms),
-    // ];
     let params = SmsParams {
         key: "cb2c3cee7073db699b9921ab5d738ce7".into(),
         route: "2".into(),
