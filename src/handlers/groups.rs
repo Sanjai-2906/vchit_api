@@ -1,12 +1,64 @@
-use axum::Json;
+use crate::{AppState, get_connection::get_connection, models::GroupModel};
+use axum::{Json, extract::State, http::StatusCode};
 
-pub async fn get_groups() -> Json<Vec<String>> {
-    let group_list: Vec<&str> = vec![
-        "1L A1", "1L A2", "1L A3", "2L A1", "2L A2", "2L A3", "3L A1", "3L A2", "3L A3", "4L A1",
-        "4L A2", "4L A3", "5L A1", "5L A2", "5L A3",
-    ];
+pub async fn get_groups(
+    // State(config): State<AppConfig>,
+    State(state): State<AppState>,
+) -> Result<Json<Vec<GroupModel>>, (StatusCode, String)> {
+    let conn = get_connection(&state.pool).await?;
 
-    let groups: Vec<String> = group_list.iter().map(|group|group.to_string()).collect();
+    let rows = {
+        conn.query(
+            "select chitbasicid, chitgroupno
+         from chitlist
+         group by chitbasicid, chitgroupno
+         order by 2",
+            &[],
+        )
+        .map_err(|err| {
+            eprintln!("Database Query Error: {:?}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database operational error occurred".to_string(),
+            )
+        })?
+    };
 
-    return Json(groups);
+    let mut groups = Vec::new();
+
+    for (index, row_result) in rows.into_iter().enumerate() {
+        let row = row_result.map_err(|err| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to parse row at index: {}", err),
+            )
+        })?;
+
+        let group_id: Option<i64> = row
+            .get(0)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        let group_name: Option<String> = row
+            .get(1)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+        match (group_id, group_name) {
+            (Some(id), Some(name)) => {
+                groups.push(GroupModel {
+                    group_id: id,
+                    group_name: name,
+                });
+            }
+            _ => {
+                return Err((
+                    StatusCode::BAD_REQUEST,
+                    format!(
+                        "Database requirement constraint failed: Row index {} contains a NULL value.",
+                        index
+                    ),
+                ));
+            }
+        }
+    }
+
+    Ok(Json(groups))
 }

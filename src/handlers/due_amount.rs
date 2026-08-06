@@ -1,23 +1,45 @@
-use axum::Json;
-use rand::prelude::*;
+use axum::{Json, extract::State, http::StatusCode};
+use crate::{
+    AppState, get_connection::get_connection, models::{DueModel, GetDueModel},
+};
 
-use crate::models::{GetDueModel,DueModel};
+pub async fn get_due_amount(
+    State(state): State<AppState>,
+    Json(data): Json<GetDueModel>,
+) -> Result<Json<DueModel>, (StatusCode, String)> {
+    let conn = get_connection(&state.pool).await?;
 
-pub async fn get_due_amount(Json(data): Json<GetDueModel>) -> Json<DueModel>{
-    let mut rng1 = rand::rng();
-    let mut rng2 = rand::rng();
+    let row = conn
+        .query_row(
+            "SELECT CURRENTDUE, NEXTBALANCE
+             FROM CHITLIST
+             WHERE PARTYMASTID = :1",
+            &[&data.member_id],
+        )
+        .map_err(|err| {
+            eprintln!("Database Query Error: {:?}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database query failed".to_string(),
+            )
+        })?;
 
-    let mut pend_due: Vec<i32> = (200..500).collect();
-    let mut current_due: Vec<i32> = (250..700).collect();
-    pend_due.shuffle(&mut rng1);
-    current_due.shuffle(&mut rng2);
+    let balance: Option<f64> = row
+        .get(0)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    let res =  DueModel{
-        // pending_due: 500.00,
-        pending_due: *pend_due.choose(&mut rng1).unwrap() as f32,
-        // current_due: 450.00
-        current_due: *current_due.choose(&mut rng2).unwrap() as f32,
-    };
+    let next_balance: Option<f64> = row
+        .get(1)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-    return Json(res);
+    match (balance, next_balance) {
+        (Some(balance), Some(next_balance)) => Ok(Json(DueModel {
+            balance,
+            next_balance,
+        })),
+        _ => Err((
+            StatusCode::BAD_REQUEST,
+            "CURRENTDUE or NEXTBALANCE is NULL".to_string(),
+        )),
+    }
 }
