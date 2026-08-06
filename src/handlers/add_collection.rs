@@ -1,4 +1,7 @@
+use std::println;
+
 use chrono::Local;
+use serde::Serialize;
 
 use crate::{
     AppState,
@@ -8,11 +11,18 @@ use crate::{
 use axum::{Json, extract::State, http::StatusCode};
 use reqwest::Client;
 
+// New response structure
+#[derive(Serialize)]
+pub struct CollectionResponse {
+    pub success: bool,
+    pub message_sent: bool,
+}
+
 pub async fn add_collection(
     State(state): State<AppState>,
     Json(collection): Json<CollectionModel>,
-) -> Result<StatusCode,(StatusCode,String)> {
-    println!("User Data: {:?}", collection);
+    // ) -> Result<StatusCode,(StatusCode,String)> {
+) -> Result<(StatusCode, Json<CollectionResponse>), (StatusCode, String)> {
     let conn = get_connection(&state.pool).await?;
     let doc_id: i64 = conn
         .query_row_as("SELECT MOB_DOCID_SEQ.NEXTVAL FROM MOB", &[])
@@ -85,7 +95,22 @@ pub async fn add_collection(
             "Failed to commit transaction".to_string(),
         )
     })?;
-    println!("Doc id: {}", doc_id);
+
+    // Check if mobile number is missing or empty
+    let mobile_opt = collection.mobile.as_ref().filter(|s| !s.trim().is_empty());
+
+    if mobile_opt.is_none() {
+        return Ok((
+            StatusCode::CREATED,
+            Json(CollectionResponse {
+                success: true,
+                message_sent: false,
+            }),
+        ));
+    }
+
+    let mobile = mobile_opt.unwrap();
+
     // Build SMS
     let sms = format!(
         "Dear Mr. {}, received Rs.{} for Group {} on {}, Receipt No:{} -VALUMOORTHY VELAYUTHAM CHITS (P) LTD.",
@@ -96,10 +121,10 @@ pub async fn add_collection(
         doc_id,
     );
 
-    let mobile = collection
-        .mobile
-        .as_ref()
-        .ok_or((StatusCode::CONFLICT, "Mobile number is Null".to_string()))?;
+    // let mobile = collection
+    //     .mobile
+    //     .as_ref()
+    //     .ok_or((StatusCode::CONFLICT, "Mobile number not found".to_string()))?;
 
     let params = SmsParams {
         key: "cb2c3cee7073db699b9921ab5d738ce7".into(),
@@ -110,27 +135,38 @@ pub async fn add_collection(
         sms,
     };
 
-    println!("{:?}", params);
-
     let client = Client::new();
+    let mut message_sent = false;
 
-    let response = match client
+    if let Ok(_) = client
         .get("http://bulksms.velcloud.in/api/smsapi")
         .query(&params)
         .send()
         .await
     {
-        Ok(response) => response,
-        Err(err) => {
-            eprintln!("SMS Error: {:?}", err);
-            return Ok(StatusCode::CREATED); // or return Err(...)
-        }
-    };
+        message_sent = true;
+    }
 
-    println!("SMS Status: {}", response.status());
+    Ok((
+        StatusCode::CREATED,
+        Json(CollectionResponse {
+            success: true,
+            message_sent,
+        }),
+    ))
+    // let _ = match client
+    //     .get("https://bulksms.velcloud.in/api/smsapi")
+    //     .query(&params)
+    //     .send()
+    //     .await
+    // {
+    //     Ok(response) => response,
+    //     // Ok(response) => response,
+    //     Err(err) => {
+    //         eprintln!("SMS Error: {:?}", err);
+    //         return Ok(StatusCode::CREATED);
+    //     }
+    // };
 
-    let body = response.text().await.unwrap_or_default();
-    println!("SMS Response: {}", body);
-
-    Ok(StatusCode::CREATED)
+    // Ok(StatusCode::CREATED)
 }

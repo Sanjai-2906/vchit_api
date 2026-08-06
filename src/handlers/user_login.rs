@@ -9,7 +9,6 @@ pub async fn user_login(
     let conn = get_connection(&state.pool).await?;
     
     let today = Local::now().date_naive();
-    println!("Today Date: {}", today);
     if today != data.logged_at.date() {
         return Err((StatusCode::UNAUTHORIZED, "Session Expired".to_string()));
     }
