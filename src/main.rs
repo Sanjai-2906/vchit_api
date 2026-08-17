@@ -13,7 +13,7 @@ use handlers::{
     groups::get_groups, members::get_members, summary_breakup::summary_breakup,
     user_login::user_login,
 };
-use oracle::pool::{Pool, PoolBuilder};
+use oracle::pool::{GetMode, Pool, PoolBuilder};
 use tower_http::cors::{Any, CorsLayer};
 
 #[derive(Clone)]
@@ -50,10 +50,19 @@ async fn main() -> Result<(), String> {
         &config.oracle_connect_string,
     );
 
-    let _ = builder
-        .min_connections(5)
-        .max_connections(100)
-        .timeout(Duration::from_secs(10));
+    builder
+        .min_connections(1)
+        .max_connections(50)
+        .connection_increment(1)
+        .get_mode(GetMode::TimedWait(Duration::from_secs(10)))
+        .ping_interval(Some(Duration::from_secs(30)))
+        .map_err(|err: oracle::Error| err.to_string())?
+        .ping_timeout(Duration::from_secs(5))
+        .map_err(|err: oracle::Error| err.to_string())?
+        .timeout(Duration::from_secs(300))
+        .map_err(|err: oracle::Error| err.to_string())?
+        .max_lifetime_connection(Duration::from_secs(3600))
+        .map_err(|err: oracle::Error| err.to_string())?;
 
     let pool = builder
         .build()
