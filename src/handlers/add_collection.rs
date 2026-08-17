@@ -25,7 +25,7 @@ pub async fn add_collection(
 ) -> Result<(StatusCode, Json<CollectionResponse>), (StatusCode, String)> {
     let conn = get_connection(&state.pool).await?;
     let doc_id: i64 = conn
-        .query_row_as("SELECT MOB_DOCID_SEQ.NEXTVAL FROM MOB", &[])
+        .query_row_as("SELECT MOB_DOCID_SEQ.NEXTVAL FROM DUAL", &[])
         .map_err(|err| {
             eprintln!("Failed to get DOCID: {:?}", err);
             (
@@ -121,11 +121,6 @@ pub async fn add_collection(
         doc_id,
     );
 
-    // let mobile = collection
-    //     .mobile
-    //     .as_ref()
-    //     .ok_or((StatusCode::CONFLICT, "Mobile number not found".to_string()))?;
-
     let params = SmsParams {
         key: "cb2c3cee7073db699b9921ab5d738ce7".into(),
         route: "2".into(),
@@ -154,19 +149,4 @@ pub async fn add_collection(
             message_sent,
         }),
     ))
-    // let _ = match client
-    //     .get("https://bulksms.velcloud.in/api/smsapi")
-    //     .query(&params)
-    //     .send()
-    //     .await
-    // {
-    //     Ok(response) => response,
-    //     // Ok(response) => response,
-    //     Err(err) => {
-    //         eprintln!("SMS Error: {:?}", err);
-    //         return Ok(StatusCode::CREATED);
-    //     }
-    // };
-
-    // Ok(StatusCode::CREATED)
 }
