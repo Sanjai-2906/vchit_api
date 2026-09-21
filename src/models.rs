@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionModel {
-    // pub doc_id: String,
+    pub logged_at: NaiveDateTime,
     pub doc_date: String,
     pub collected_by: String,
     pub group_no: String,
