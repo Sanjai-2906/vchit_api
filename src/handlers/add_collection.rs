@@ -21,8 +21,13 @@ pub struct CollectionResponse {
 pub async fn add_collection(
     State(state): State<AppState>,
     Json(collection): Json<CollectionModel>,
-    // ) -> Result<StatusCode,(StatusCode,String)> {
 ) -> Result<(StatusCode, Json<CollectionResponse>), (StatusCode, String)> {
+    
+    let today = Local::now().date_naive();
+    if today != collection.logged_at.date() {
+        return Err((StatusCode::UNAUTHORIZED, "Session Expired".to_string()));
+    }
+
     let conn = get_connection(&state.pool).await?;
     let doc_id: i64 = conn
         .query_row_as("SELECT MOB_DOCID_SEQ.NEXTVAL FROM DUAL", &[])
