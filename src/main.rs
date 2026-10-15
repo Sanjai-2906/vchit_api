@@ -80,6 +80,7 @@ async fn main() -> Result<(), String> {
         .route("/new_collection", post(add_collection))
         .route("/collectionlist", post(get_collections))
         .route("/due-amount", post(get_due_amount))
+        .route("/members", get(get_members))
         .route("/members/{grpName}", get(get_members))
         .route("/groups", get(get_groups))
         .route("/summary", post(summary_breakup))
